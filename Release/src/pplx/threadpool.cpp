@@ -100,6 +100,9 @@ private:
 
 namespace crossplat
 {
+
+static void init_shared_pool();
+
 #if defined(__ANDROID__)
 // This pointer will be 0-initialized by default (at load time).
 std::atomic<JavaVM*> JVM;
@@ -125,33 +128,52 @@ JNIEnv* get_jvm_env()
     return env;
 }
 
-static threadpool_impl s_shared(40);
+
+static threadpool_impl *s_shared(40) = nullptr;
 threadpool& threadpool::shared_instance()
 {
     abort_if_no_jvm();
+    init_shared_pool();
     return s_shared;
 }
 
 
 #else
 
-static threadpool_impl s_shared(40);
+static threadpool_impl *s_shared = nullptr;
 // initialize the static shared threadpool
 threadpool& threadpool::shared_instance()
 {
-    return s_shared;
+    init_shared_pool();
+    return *s_shared;
 }
 
 #endif
 
 /// The destructor must be manually called in the main program
 void threadpool::stop_shared() {
-  s_shared.~threadpool_impl();
+    if (s_shared) {
+        delete s_shared;
+    }
 }
 void threadpool::reinit_shared() 
 {
-  new (&s_shared) threadpool_impl(40);
+    s_shared = new threadpool_impl(40);
 }
+
+#if defined(CPPREST_PTHREADS)
+  pthread_once_t init_once;
+  static void init_shared_pool()
+  {
+    pthread_once(&init_once, threadpool::reinit_shared);
+  }
+#else
+  std::once_flag init_once;
+  static void init_shared_pool()
+  {
+    std::call_once(&init_once, threadpool::reinit_shared);
+  }
+#endif
 
 }
 
