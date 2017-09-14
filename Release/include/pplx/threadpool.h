@@ -66,6 +66,10 @@ public:
 
     boost::asio::io_service& service() { return m_service; }
 
+    /// a workaround for the fork call on linux...
+    static void reinit_shared();
+    static void stop_shared();
+
 protected:
     threadpool(size_t num_threads) : m_service(num_threads) {}
 

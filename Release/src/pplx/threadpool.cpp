@@ -118,31 +118,40 @@ JNIEnv* get_jvm_env()
     abort_if_no_jvm();
     JNIEnv* env = nullptr;
     auto result = JVM.load()->AttachCurrentThread(&env, nullptr);
-    if (result != JNI_OK)
-    {
+    if (result != JNI_OK) {
         throw std::runtime_error("Could not attach to JVM");
     }
 
     return env;
 }
 
+static threadpool_impl s_shared(40);
 threadpool& threadpool::shared_instance()
 {
     abort_if_no_jvm();
-    static threadpool_impl s_shared(40);
     return s_shared;
 }
 
+
 #else
 
+static threadpool_impl s_shared(40);
 // initialize the static shared threadpool
 threadpool& threadpool::shared_instance()
 {
-    static threadpool_impl s_shared(40);
     return s_shared;
 }
 
 #endif
+
+/// The destructor must be manually called in the main program
+void threadpool::stop_shared() {
+  s_shared.~threadpool_impl();
+}
+void threadpool::reinit_shared() 
+{
+  new (&s_shared) threadpool_impl(40);
+}
 
 }
 
