@@ -129,7 +129,7 @@ JNIEnv* get_jvm_env()
 }
 
 
-static threadpool_impl *s_shared(40) = nullptr;
+static threadpool_impl *s_shared = nullptr;
 threadpool& threadpool::shared_instance()
 {
     abort_if_no_jvm();
@@ -154,11 +154,14 @@ threadpool& threadpool::shared_instance()
 void threadpool::stop_shared() {
     if (s_shared) {
         delete s_shared;
+        s_shared = nullptr;
     }
 }
 void threadpool::reinit_shared() 
 {
+  if (s_shared == nullptr) {
     s_shared = new threadpool_impl(40);
+  }
 }
 
 #if defined(CPPREST_PTHREADS)
