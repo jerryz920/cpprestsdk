@@ -160,7 +160,7 @@ void threadpool::stop_shared() {
 void threadpool::reinit_shared() 
 {
   if (s_shared == nullptr) {
-    s_shared = new threadpool_impl(40);
+    s_shared = new threadpool_impl(10);
   }
 }
 
